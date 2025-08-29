@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator Workflow</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js" onerror="loadQRCodeFallback()"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .workflow-section {
+            padding: 40px;
+        }
+
+        .workflow-step {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #4facfe;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 15px;
+        }
+
+        .step-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .url-presets {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .preset-btn:hover {
+            border-color: #4facfe;
+            background: #f0f8ff;
+        }
+
+        .generate-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .qr-output {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .qr-canvas {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(67, 233, 123, 0.3);
+        }
+
+        .workflow-history {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .history-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .history-url {
+            flex: 1;
+            margin-right: 10px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .regenerate-btn, .remove-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .regenerate-btn {
+            background: #4facfe;
+            color: white;
+        }
+
+        .remove-btn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .advanced-options {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+            border: 2px dashed #dee2e6;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .workflow-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 QR Code Generator</h1>
+            <p>Workflow Automation Tool - Generate, Customize & Download</p>
+        </div>
+
+        <div class="workflow-section">
+            <!-- Step 1: URL Input -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Enter Target URL</div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="targetUrl">Target URL:</label>
+                    <input type="url" id="targetUrl" placeholder="https://example.com" value="https://giftofthegivers.org/make-a-difference/banking-details/">
+                </div>
+
+                <div class="url-presets">
+                    <div class="preset-btn" onclick="setPresetUrl('https://giftofthegivers.org/make-a-difference/banking-details/')">
+                        Gift of the Givers - Banking
+                    </div>
+                    <div class="preset-btn" onclick="setPresetUrl('https://google.com')">
+                        Google
+                    </div>
+                    <div class="preset-btn" onclick="setPresetUrl('https://github.com')">
+                        GitHub
+                    </div>
+                    <div class="preset-btn" onclick="setPresetUrl('https://linkedin.com')">
+                        LinkedIn
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: QR Code Customization -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Customize QR Code</div>
+                </div>
+
+                <div class="advanced-options">
+                    <div class="options-grid">
+                        <div class="input-group">
+                            <label for="qrSize">Size (px):</label>
+                            <select id="qrSize">
+                                <option value="200">200x200</option>
+                                <option value="300" selected>300x300</option>
+                                <option value="400">400x400</option>
+                                <option value="500">500x500</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="qrColor">Foreground Color:</label>
+                            <input type="color" id="qrColor" value="#000000">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="qrBgColor">Background Color:</label>
+                            <input type="color" id="qrBgColor" value="#ffffff">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="errorCorrection">Error Correction:</label>
+                            <select id="errorCorrection">
+                                <option value="L">Low (7%)</option>
+                                <option value="M" selected>Medium (15%)</option>
+                                <option value="Q">Quartile (25%)</option>
+                                <option value="H">High (30%)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Generate QR Code -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Generate QR Code</div>
+                </div>
+
+                <button class="generate-btn" onclick="generateQRCode()">
+                    🔄 Generate QR Code
+                </button>
+
+                <div id="statusMessage"></div>
+
+                <div id="qrOutput" class="qr-output" style="display: none;">
+                    <canvas id="qrCanvas" class="qr-canvas"></canvas>
+                    <div>
+                        <button class="download-btn" onclick="downloadQR('png')">📥 Download PNG</button>
+                        <button class="download-btn" onclick="downloadQR('jpg')">📥 Download JPG</button>
+                        <button class="download-btn" onclick="downloadQR('svg')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">📥 Download SVG</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Workflow History -->
+            <div class="workflow-step">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Workflow History</div>
+                </div>
+
+                <div class="workflow-history">
+                    <div id="historyContainer">
+                        <p style="text-align: center; color: #666; font-style: italic;">No QR codes generated yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let qrHistory = [];
+        let currentQRData = null;
+        let qrLibraryLoaded = false;
+        let useQRious = false;
+
+        // Check if QR code library is available
+        function checkQRLibrary() {
+            if (typeof QRCode !== 'undefined') {
+                qrLibraryLoaded = true;
+                useQRious = false;
+            } else if (typeof QRious !== 'undefined') {
+                qrLibraryLoaded = true;
+                useQRious = true;
+            }
+            return qrLibraryLoaded;
+        }
+
+        // Fallback function if primary library fails to load
+        function loadQRCodeFallback() {
+            console.log('Primary QR library failed, using QRious as fallback');
+            useQRious = true;
+        }
+
+        function setPresetUrl(url) {
+            document.getElementById('targetUrl').value = url;
+        }
+
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 3000);
+            }
+        }
+
+        async function generateQRCode() {
+            const url = document.getElementById('targetUrl').value.trim();
+            
+            if (!url) {
+                showStatus('Please enter a valid URL', 'error');
+                return;
+            }
+
+            // Validate URL format
+            try {
+                new URL(url);
+            } catch (e) {
+                showStatus('Please enter a valid URL format (e.g., https://example.com)', 'error');
+                return;
+            }
+
+            // Check if QR library is available
+            if (!checkQRLibrary()) {
+                showStatus('QR Code library is loading... Please wait a moment and try again.', 'error');
+                return;
+            }
+
+            const size = parseInt(document.getElementById('qrSize').value);
+            const color = document.getElementById('qrColor').value;
+            const bgColor = document.getElementById('qrBgColor').value;
+            const errorCorrection = document.getElementById('errorCorrection').value;
+
+            const generateBtn = document.querySelector('.generate-btn');
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Generating...';
+
+            try {
+                const canvas = document.getElementById('qrCanvas');
+                
+                if (useQRious || typeof QRCode === 'undefined') {
+                    // Use QRious library
+                    const qr = new QRious({
+                        element: canvas,
+                        value: url,
+                        size: size,
+                        foreground: color,
+                        background: bgColor,
+                        level: errorCorrection === 'L' ? 'L' : errorCorrection === 'M' ? 'M' : errorCorrection === 'Q' ? 'Q' : 'H'
+                    });
+                } else {
+                    // Use QRCode.js library
+                    await QRCode.toCanvas(canvas, url, {
+                        width: size,
+                        height: size,
+                        color: {
+                            dark: color,
+                            light: bgColor
+                        },
+                        errorCorrectionLevel: errorCorrection,
+                        margin: 2
+                    });
+                }
+
+                currentQRData = {
+                    url: url,
+                    size: size,
+                    color: color,
+                    bgColor: bgColor,
+                    errorCorrection: errorCorrection,
+                    timestamp: new Date().toLocaleString()
+                };
+
+                // Add to history
+                addToHistory(currentQRData);
+
+                // Show output
+                document.getElementById('qrOutput').style.display = 'block';
+                showStatus('✅ QR Code generated successfully! Ready for download.');
+
+                // Scroll to output
+                document.getElementById('qrOutput').scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Error generating QR code:', error);
+                showStatus('❌ Error generating QR code. Please try again.', 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '🔄 Generate QR Code';
+            }
+        }
+
+        function addToHistory(qrData) {
+            // Remove duplicate URLs
+            qrHistory = qrHistory.filter(item => item.url !== qrData.url);
+            
+            // Add new item to beginning
+            qrHistory.unshift(qrData);
+            
+            // Limit history to 10 items
+            if (qrHistory.length > 10) {
+                qrHistory = qrHistory.slice(0, 10);
+            }
+            
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const container = document.getElementById('historyContainer');
+            
+            if (qrHistory.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">No QR codes generated yet</p>';
+                return;
+            }
+
+            container.innerHTML = qrHistory.map((item, index) => `
+                <div class="history-item">
+                    <div class="history-url">
+                        <strong>URL:</strong> ${item.url}<br>
+                        <small style="color: #666;">Generated: ${item.timestamp}</small>
+                    </div>
+                    <div class="history-actions">
+                        <button class="regenerate-btn" onclick="regenerateFromHistory(${index})">🔄</button>
+                        <button class="remove-btn" onclick="removeFromHistory(${index})">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function regenerateFromHistory(index) {
+            const item = qrHistory[index];
+            
+            // Set form values
+            document.getElementById('targetUrl').value = item.url;
+            document.getElementById('qrSize').value = item.size;
+            document.getElementById('qrColor').value = item.color;
+            document.getElementById('qrBgColor').value = item.bgColor;
+            document.getElementById('errorCorrection').value = item.errorCorrection;
+            
+            // Generate QR code
+            generateQRCode();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function removeFromHistory(index) {
+            qrHistory.splice(index, 1);
+            updateHistoryDisplay();
+        }
+
+        function downloadQR(format) {
+            if (!currentQRData) {
+                showStatus('No QR code to download. Please generate one first.', 'error');
+                return;
+            }
+
+            const canvas = document.getElementById('qrCanvas');
+            
+            if (format === 'svg') {
+                // Generate SVG version using QRCode.js if available
+                if (typeof QRCode !== 'undefined' && !useQRious) {
+                    QRCode.toString(currentQRData.url, {
+                        type: 'svg',
+                        width: currentQRData.size,
+                        color: {
+                            dark: currentQRData.color,
+                            light: currentQRData.bgColor
+                        },
+                        errorCorrectionLevel: currentQRData.errorCorrection
+                    }, function (err, string) {
+                        if (err) {
+                            showStatus('SVG export not available with current library', 'error');
+                            return;
+                        }
+                        
+                        const blob = new Blob([string], { type: 'image/svg+xml' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `qr-code-${Date.now()}.svg`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        showStatus(`📥 QR Code downloaded as SVG!`);
+                    });
+                } else {
+                    showStatus('SVG export not available with current library. Please use PNG or JPG.', 'error');
+                }
+            } else {
+                // Download canvas as PNG or JPG
+                const mimeType = format === 'jpg' ? 'image/jpeg' : 'image/png';
+                const quality = format === 'jpg' ? 0.9 : 1.0;
+                
+                canvas.toBlob(function(blob) {
+                    if (!blob) {
+                        showStatus('Error creating image file', 'error');
+                        return;
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `qr-code-${Date.now()}.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showStatus(`📥 QR Code downloaded as ${format.toUpperCase()}!`);
+                }, mimeType, quality);
+            }
+        }
+
+        // Initialize with default QR code
+        window.addEventListener('load', function() {
+            // Wait for libraries to load, then auto-generate the first QR code
+            setTimeout(() => {
+                if (checkQRLibrary()) {
+                    generateQRCode();
+                } else {
+                    // Try again after another delay
+                    setTimeout(() => {
+                        if (checkQRLibrary()) {
+                            generateQRCode();
+                        } else {
+                            showStatus('QR Code libraries are loading. Please click "Generate QR Code" to create your first QR code.', 'error');
+                        }
+                    }, 2000);
+                }
+            }, 1500);
+        });
+
+        // Handle Enter key in URL input
+        document.getElementById('targetUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQRCode();
+            }
+        });
+    </script>
+</body>
+</html>
